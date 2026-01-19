@@ -1,31 +1,45 @@
 import OpenAI from "openai";
 
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ reply: "Method not allowed" });
   }
 
-  const { message } = req.body ?? {};
-  if (!message || typeof message !== "string" || message.trim().length === 0) {
-    return res.status(400).json({ error: "Message is required" });
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ reply: "Mensagem vazia." });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  try {
+    const response = await client.responses.create({
+      model: "gpt-4o-mini",
+      input: [
+        {
+          role: "system",
+          content:
+            "Você é a Lux, uma assistente virtual de compras que ajuda usuários a escolher produtos com base em necessidade, orçamento e custo-benefício.",
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+    });
+
+    const text =
+      response.output_text ||
+      "Não consegui gerar uma resposta agora.";
+
+    return res.status(200).json({ reply: text });
+  } catch (error) {
+    console.error("Erro OpenAI:", error);
     return res
       .status(500)
-      .json({ error: "OPENAI_API_KEY is not configured" });
+      .json({ reply: "Erro ao consultar a IA. Tente novamente." });
   }
-
-  const client = new OpenAI({ apiKey });
-
-  const response = await client.responses.create({
-    model: "gpt-4o-mini",
-    input: message,
-  });
-
-  const reply = response.output_text ?? "";
-
-  return res.status(200).json({ reply });
 }
