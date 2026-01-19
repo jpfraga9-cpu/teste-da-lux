@@ -20,12 +20,12 @@ export default async function handler(req, res) {
 
   const client = new OpenAI({ apiKey });
 
-  const completion = await client.chat.completions.create({
+  const response = await client.responses.create({
     model: "gpt-4o-mini",
-    messages: [{ role: "user", content: message }],
+    input: message,
   });
 
-  const reply = completion.choices?.[0]?.message?.content ?? "";
+  const reply = response.output_text ?? "";
 
   return res.status(200).json({ reply });
 }
