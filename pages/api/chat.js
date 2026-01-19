@@ -6,10 +6,18 @@ const client = new OpenAI({
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
     return res.status(405).json({ reply: "Method not allowed" });
   }
 
-  const { message } = req.body;
+  if (!process.env.OPENAI_API_KEY) {
+    return res
+      .status(500)
+      .json({ reply: "Configuração da API ausente." });
+  }
+
+  const message =
+    typeof req.body?.message === "string" ? req.body.message.trim() : "";
 
   if (!message) {
     return res.status(400).json({ reply: "Mensagem vazia." });
@@ -37,7 +45,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ reply: text });
   } catch (error) {
-    console.error("Erro OpenAI:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Erro desconhecido";
+    console.error("Erro OpenAI:", errorMessage);
     return res
       .status(500)
       .json({ reply: "Erro ao consultar a IA. Tente novamente." });
